@@ -1,0 +1,25 @@
+{
+  "name": "CareTag",
+  "short_name": "CareTag",
+  "description": "Universal Laundry Symbol Translator & Digital Wardrobe",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%23000000'><rect width='192' height='192' rx='40' fill='%23000000'/><path d='M40 70h112l-12 70a16 16 0 0 1-16 14H68a16 16 0 0 1-16-14L40 70Z' fill='none' stroke='%234ade80' stroke-width='10' stroke-linejoin='round'/><text x='96' y='125' font-size='28' font-weight='bold' fill='%234ade80' text-anchor='middle' font-family='sans-serif'>30°</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23000000'><rect width='512' height='512' rx='100' fill='%23000000'/><path d='M100 180h312l-32 190a42 42 0 0 1-42 36H174a42 42 0 0 1-42-36L100 180Z' fill='none' stroke='%234ade80' stroke-width='24' stroke-linejoin='round'/><text x='256' y='330' font-size='76' font-weight='bold' fill='%234ade80' text-anchor='middle' font-family='sans-serif'>30°</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

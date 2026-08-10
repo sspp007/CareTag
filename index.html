@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>CareTag</title>
+
+  <!-- PWA Manifest Link -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234ade80' stroke-width='2'><path d='M7 16h34l-3.2 18.2a4 4 0 0 1-3.9 3.3H14.1a4 4 0 0 1-3.9-3.3L7 16Z'/></svg>">
+
+  <!-- Lucide Icons via CDN (Mandated Open-Source Icon Pack) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            black: '#000000',
+            card: '#1C1C1E',
+            secondary: '#2C2C2E',
+            neon: {
+              DEFAULT: '#4ade80',
+              green: '#4ade80'
+            },
+            muted: '#8E8E93'
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Native Flat Styling -->
+  <link rel="stylesheet" href="css/style.css?v=1.3">
+</head>
+
+<body
+  class="bg-black text-white flex items-center justify-center min-h-[100dvh] p-0 sm:p-4 overflow-hidden select-none">
+
+  <!-- Mobile App Frame Container (Flat Design, No Border) -->
+  <main
+    class="w-full sm:max-w-md h-[100dvh] sm:h-[860px] sm:max-h-[94vh] bg-black sm:rounded-[36px] relative flex flex-col overflow-hidden">
+
+    <!-- TOP APP HEADER -->
+    <header id="app-header"
+      class="absolute top-0 inset-x-0 z-30 pt-safe px-5 py-3.5 flex items-center justify-between bg-black/90">
+      <div class="flex items-center space-x-2.5">
+        <!-- Pure-White SVG Geometric Garment Tag Icon -->
+        <div class="w-7 h-7 flex items-center justify-center text-white">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+            <circle cx="7" cy="7" r=".5" fill="currentColor" />
+          </svg>
+        </div>
+        <!-- Rebranded Title: Simply CareTag -->
+        <h1 class="text-base font-bold tracking-tight text-white font-sans">CareTag</h1>
+      </div>
+
+      <!-- Header Controls: Flashlight & Camera Flip (Visible on Scan View) -->
+      <div id="header-scan-controls" class="hidden flex items-center space-x-2">
+        <button id="btn-torch"
+          class="w-9 h-9 rounded-xl surface-secondary flex items-center justify-center text-neutral-300 hover:text-neon active:scale-95 transition-all"
+          title="Toggle Flashlight">
+          <i data-lucide="zap" class="w-4 h-4"></i>
+        </button>
+
+        <button id="btn-flip-camera"
+          class="w-9 h-9 rounded-xl surface-secondary flex items-center justify-center text-neutral-300 hover:text-neon active:scale-95 transition-all"
+          title="Switch Camera">
+          <i data-lucide="switch-camera" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- VIEW 1: HOME VIEW (DEFAULT ACTIVE) -->
+    <section id="home-view"
+      class="flex-1 w-full h-full relative flex flex-col overflow-y-auto custom-scrollbar p-5 pt-16 pb-24 bg-black space-y-3.5">
+
+      <!-- CARD 1: WEATHER CARD -->
+      <div class="surface-card p-5">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2.5">
+            <!-- Lucide Cloud Icon -->
+            <i data-lucide="cloud" class="w-5 h-5 text-neutral-400"></i>
+            <span class="text-xs font-semibold text-muted uppercase tracking-wider">Weather</span>
+          </div>
+        </div>
+
+        <h2 class="text-2xl font-bold text-white tracking-tight font-sans">30° Overcast</h2>
+        <p class="text-xs text-muted mt-1">Warm and humid conditions</p>
+      </div>
+
+      <!-- CARD 2: WELCOME BACK CARD -->
+      <div class="surface-card p-5">
+        <h3 class="text-base font-bold text-white tracking-tight">Welcome Back! Ready to scan some garments today?</h3>
+        <p class="text-xs text-muted mt-1.5 leading-relaxed">
+          Align any care tag in the camera frame to view wash, dry, and iron requirements.
+        </p>
+
+        <button id="btn-home-start-scan"
+          class="mt-4 w-full py-3 px-4 rounded-xl bg-neon text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 active:opacity-90 transition-opacity cursor-pointer">
+          <i data-lucide="camera" class="w-4 h-4"></i>
+          <span>Open Scanner</span>
+        </button>
+      </div>
+
+      <!-- CARD 3: STYLE SUGGESTION INTERACTIVE CARD -->
+      <div class="surface-card p-5">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-semibold text-white">Daily Outfit Idea</h4>
+          <span class="text-xs text-muted">Curated</span>
+        </div>
+
+        <!-- Flat Button to reveal style suggestion -->
+        <button id="btn-style-suggestion"
+          class="mt-3 w-full py-2.5 px-4 surface-secondary text-neon text-xs font-semibold rounded-xl flex items-center justify-center space-x-2 active:opacity-80 transition-opacity cursor-pointer">
+          <i data-lucide="sparkles" class="w-4 h-4 text-neon"></i>
+          <span>Get Style Suggestion</span>
+        </button>
+
+        <!-- Hidden collapsible style suggestion text (Revealed via CSS transition) -->
+        <div id="style-suggestion-box">
+          <div class="p-3.5 surface-secondary rounded-xl">
+            <p id="style-suggestion-text" class="text-xs text-neutral-200 leading-relaxed font-sans">
+              For a 30° overcast day, wear a breathable smart-casual polo, white leather sneakers, transparent frames,
+              and a light musk.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4: COLLEGE CARE GUIDE ENTRY PORTAL -->
+      <div id="card-open-guide" class="surface-card p-5 cursor-pointer active:opacity-80 transition-opacity">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <i data-lucide="book-open" class="w-5 h-5 text-neon"></i>
+            <h4 class="text-sm font-bold text-white tracking-tight font-sans">College Care Guide</h4>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-muted"></i>
+        </div>
+        <p class="text-xs text-muted mt-2 leading-relaxed font-sans">
+          Quick visual manuals for washing, drying, and preventing fabric damage. Learn how to stop ruining your clothes.
+        </p>
+      </div>
+
+    </section>
+
+    <!-- VIEW 2: SCAN VIEW -->
+    <section id="scan-view" class="hidden flex-1 w-full h-full relative flex flex-col overflow-hidden bg-black">
+
+      <!-- Camera Viewfinder Area -->
+      <div id="viewfinder-container"
+        class="relative flex-1 w-full h-full bg-black overflow-hidden flex flex-col items-center justify-center">
+
+        <!-- Live Video Element - Absolute to avoid shifting reticle -->
+        <video id="camera-feed" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+
+        <!-- Freeze Frame Snapshot Canvas -->
+        <canvas id="capture-canvas"
+          class="hidden absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"></canvas>
+
+        <!-- Synthetic Tag Fallback Preview (Used if camera access denied or on desktop) -->
+        <div id="synthetic-feed"
+          class="hidden absolute inset-0 w-full h-full flex flex-col items-center justify-center p-6 bg-black z-0">
+          <div class="w-64 p-5 surface-card flex flex-col items-center text-center">
+            <div class="w-full flex justify-between items-center pb-2 text-xs text-muted border-b border-secondary">
+              <span>CARE TAG</span>
+              <span class="text-neon font-medium">100% COTTON</span>
+            </div>
+            <!-- Clean flat SVG preview -->
+            <div class="flex items-center justify-center gap-3 my-4 text-white">
+              <div class="p-2 surface-secondary rounded-lg">
+                <svg width="28" height="28" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 16h34l-3.2 18.2a4 4 0 0 1-3.9 3.3H14.1a4 4 0 0 1-3.9-3.3L7 16Z" />
+                  <path d="M7 21c3.5 1.5 6.5 1.5 10 0s6.5-1.5 10 0 6.5 1.5 10 0" />
+                  <text x="24" y="32" font-size="10" font-weight="bold" fill="currentColor" stroke="none"
+                    text-anchor="middle">30°</text>
+                </svg>
+              </div>
+              <div class="p-2 surface-secondary rounded-lg">
+                <svg width="28" height="28" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="24,8 41,38 7,38" />
+                  <line x1="12" y1="14" x2="36" y2="38" stroke-width="2.5" />
+                  <line x1="36" y1="14" x2="12" y2="38" stroke-width="2.5" />
+                </svg>
+              </div>
+              <div class="p-2 surface-secondary rounded-lg">
+                <svg width="28" height="28" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="8" y="8" width="32" height="32" rx="3" />
+                  <circle cx="24" cy="24" r="12" />
+                  <circle cx="24" cy="24" r="2.5" fill="currentColor" stroke="none" />
+                </svg>
+              </div>
+            </div>
+            <span class="text-[11px] text-muted">Demo Tag Active</span>
+          </div>
+        </div>
+
+        <!-- Permission Banner -->
+        <div id="camera-status-banner"
+          class="hidden absolute top-20 inset-x-4 z-20 p-3.5 surface-card flex items-center justify-between text-xs text-white">
+          <span id="camera-status-text">Camera access required</span>
+          <button id="btn-request-cam"
+            class="px-3 py-1 bg-neon text-black font-bold rounded-lg text-xs cursor-pointer">Grant</button>
+        </div>
+
+        <!-- Dark Cutout Mask around target box -->
+        <div class="absolute inset-0 pointer-events-none z-10" style="background: rgba(0, 0, 0, 0.6);"></div>
+
+        <!-- FLAT RETICLE TARGET (Zero Glow, Zero Laser Sweeps) -->
+        <div id="reticle-box"
+          class="relative z-20 w-[84%] max-w-[310px] aspect-[4/3] rounded-2xl flex flex-col justify-between p-3.5 pointer-events-none mx-auto shrink-0">
+          <div class="reticle-corner top-left"></div>
+          <div class="reticle-corner top-right"></div>
+          <div class="reticle-corner bottom-left"></div>
+          <div class="reticle-corner bottom-right"></div>
+
+          <!-- Guide text top -->
+          <div class="w-full flex items-center justify-between text-[11px] font-mono text-neon">
+            <span>ALIGN TAG</span>
+            <span class="text-neutral-400">ISO 3758</span>
+          </div>
+
+          <!-- Guide hint bottom -->
+          <div class="w-full flex items-center justify-center">
+            <span id="hud-status-hint"
+              class="px-3 py-1 rounded-full text-xs font-medium surface-secondary text-neutral-300">
+              Hold steady in frame
+            </span>
+          </div>
+        </div>
+
+        <!-- INFERENCE LOADING OVERLAY -->
+        <div id="loading-overlay"
+          class="hidden absolute inset-0 z-30 bg-black/85 flex flex-col items-center justify-center p-6 text-center">
+          <div class="w-10 h-10 rounded-full border-2 border-neutral-700 border-t-neon animate-spin mb-3"></div>
+          <h3 id="inference-step-title" class="text-sm font-bold text-white">Detecting Care Symbols</h3>
+          <p id="inference-step-desc" class="text-xs text-muted mt-1">Analyzing tag frame...</p>
+        </div>
+
+      </div>
+
+      <!-- Action Controls (Floating Flat Shutter Button) -->
+      <div id="action-controls"
+        class="absolute bottom-0 inset-x-0 z-20 pb-20 p-5 flex flex-col items-center pointer-events-auto">
+        <button id="btn-scan"
+          class="w-16 h-16 rounded-full bg-neon text-black flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
+          aria-label="Scan Tag">
+          <i data-lucide="camera" class="w-7 h-7 text-black stroke-[2.5]"></i>
+        </button>
+      </div>
+
+      <!-- RESULTS BOTTOM SHEET -->
+      <div id="results-sheet"
+        class="bottom-sheet hidden-sheet absolute inset-x-0 bottom-0 z-40 max-h-[85%] rounded-t-[28px] flex flex-col overflow-hidden">
+
+        <!-- Drag Handle -->
+        <div class="w-full pt-3 pb-1 flex justify-center cursor-pointer" id="results-drag-handle">
+          <div class="w-10 h-1 rounded-full bg-neutral-700"></div>
+        </div>
+
+        <!-- Header: "Analysis Complete" -->
+        <div class="px-5 py-3 border-b border-secondary flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold text-white">Analysis Complete</h2>
+            <p id="results-summary-text" class="text-xs text-muted mt-0.5">Cold Wash • No Bleach • Low Dry</p>
+          </div>
+
+          <button id="btn-close-results"
+            class="w-8 h-8 rounded-full surface-secondary text-neutral-300 hover:text-white flex items-center justify-center cursor-pointer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- MANDATED PROGRESS BARS: SUSTAINABILITY & COMFORT -->
+        <div class="px-5 py-4 space-y-3.5 bg-black/60 border-b border-secondary">
+          <!-- Sustainability Progress Bar -->
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1.5 font-mono">
+              <span class="text-neutral-400 font-bold tracking-wider text-[11px]">SUSTAINABILITY 85/100</span>
+              <span class="text-neon font-bold text-[11px]">85%</span>
+            </div>
+            <div class="metric-progress-track">
+              <div class="metric-progress-fill" style="width: 85%;"></div>
+            </div>
+          </div>
+
+          <!-- Comfort Progress Bar -->
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1.5 font-mono">
+              <span class="text-neutral-400 font-bold tracking-wider text-[11px]">COMFORT 90/100</span>
+              <span class="text-neon font-bold text-[11px]">90%</span>
+            </div>
+            <div class="metric-progress-track">
+              <div class="metric-progress-fill" style="width: 90%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- YOLO-Detected ISO Care Symbols Cards List (Clean Vector SVGs instead of text) -->
+        <div id="results-cards-container" class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-2.5">
+          <!-- Populated by app.js with SVG icons -->
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="p-4 bg-black border-t border-secondary flex items-center space-x-2.5 pb-safe">
+          <button id="btn-save-wardrobe"
+            class="py-3 px-4 rounded-xl surface-card text-neon text-xs font-semibold flex items-center justify-center space-x-1.5 cursor-pointer">
+            <i data-lucide="bookmark" class="w-4 h-4"></i>
+            <span>Save</span>
+          </button>
+
+          <button id="btn-scan-again"
+            class="flex-1 py-3 px-4 rounded-xl bg-neon text-black font-bold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 cursor-pointer">
+            <i data-lucide="rotate-cw" class="w-4 h-4 text-black"></i>
+            <span>Scan Again</span>
+          </button>
+
+          <button id="btn-copy-advice"
+            class="w-12 h-12 rounded-xl surface-card text-neutral-300 hover:text-white flex items-center justify-center shrink-0 cursor-pointer"
+            title="Copy Advice">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- VIEW 3: PROFILE VIEW -->
+    <section id="profile-view"
+      class="hidden flex-1 w-full h-full relative flex flex-col items-center justify-start p-6 pt-20 pb-24 bg-black overflow-y-auto custom-scrollbar">
+
+      <!-- Centralized Circular Avatar Placeholder -->
+      <div class="w-24 h-24 rounded-full surface-card flex items-center justify-center mb-4">
+        <i data-lucide="user" class="w-10 h-10 text-neutral-400"></i>
+      </div>
+
+      <!-- Title & Subtext -->
+      <h3 class="text-lg font-bold text-neon tracking-tight font-sans">User Profile</h3>
+      <p class="text-xs text-muted mt-1 text-center">Stats and settings will appear here.</p>
+
+      <!-- Overview Flat Cards -->
+      <div class="grid grid-cols-2 gap-3 w-full mt-6 mb-4">
+        <div class="surface-card p-4 text-center">
+          <span class="text-xl font-bold text-white font-mono">14</span>
+          <p class="text-[10px] text-muted uppercase mt-0.5">Scanned Items</p>
+        </div>
+        <div class="surface-card p-4 text-center">
+          <span id="profile-closet-count" class="text-xl font-bold text-neon font-mono">2</span>
+          <p class="text-[10px] text-muted uppercase mt-0.5">Wardrobe Twin</p>
+        </div>
+      </div>
+
+      <!-- Quick Wardrobe Access -->
+      <div class="w-full surface-card p-4 mb-4">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-bold text-white">Digital Wardrobe</span>
+          <span class="text-[10px] font-mono text-neon">Offline Synced</span>
+        </div>
+        <p class="text-xs text-muted mb-3">Saved garment care instructions stored locally.</p>
+        <button id="btn-profile-open-closet"
+          class="w-full py-2.5 px-3 rounded-xl surface-secondary text-white text-xs font-semibold flex items-center justify-center space-x-1.5 cursor-pointer">
+          <span>View Saved Clothes</span>
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- App Info -->
+      <div class="w-full surface-card p-4 space-y-2 text-xs text-neutral-300">
+        <div class="flex items-center justify-between">
+          <span>Standard</span>
+          <span class="text-muted font-mono">ISO 3758</span>
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-secondary">
+          <span>Application</span>
+          <span class="text-muted font-mono">PWA Standalone</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VIEW 4: GUIDE VIEW (COLLEGE SURVIVAL GUIDE) -->
+    <section id="guide-view" class="hidden flex-1 w-full h-full relative flex flex-col overflow-y-auto custom-scrollbar p-5 pt-16 pb-24 bg-black space-y-4">
+      
+      <!-- Top Navigation & Back Action -->
+      <div class="flex items-center justify-between">
+        <button id="btn-guide-back" class="w-9 h-9 rounded-xl surface-secondary flex items-center justify-center text-white active:opacity-75 transition-opacity cursor-pointer" title="Back to Home">
+          <i data-lucide="chevron-left" class="w-5 h-5 text-white"></i>
+        </button>
+        <span class="text-[11px] font-mono uppercase tracking-wider text-muted">Survival Manual</span>
+        <div class="w-9"></div>
+      </div>
+
+      <!-- Guide Header Banner -->
+      <div class="surface-card p-5">
+        <h2 class="text-xl font-bold text-white tracking-tight font-sans">The College Survival Guide</h2>
+        <p class="text-xs text-muted mt-1 leading-relaxed">
+          Quick visual manuals for washing, drying, and preventing fabric damage on a student budget.
+        </p>
+      </div>
+
+      <!-- CARD 1: Wash, Dry & Iron Manual -->
+      <div class="surface-card p-5 space-y-3.5">
+        <div class="w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
+          <img src="assets/guide_wash_manual.jpg" alt="Loose line art sketch of washing machine and iron" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-sm font-bold text-white tracking-tight font-sans">Wash, Dry & Iron Manual</h3>
+            <span class="text-[10px] font-mono surface-secondary px-2 py-0.5 rounded text-neon font-semibold">Care Essentials</span>
+          </div>
+          <p class="text-xs text-muted leading-relaxed">
+            Essential mechanical and thermal safeguards for communal dorm washers and dryers.
+          </p>
+        </div>
+        <ul class="space-y-2 text-xs text-neutral-300 font-sans pt-1">
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Sort by fabric weight:</strong> Heavy denim jeans, hoodies, and towels violently beat up lightweight t-shirts in the drum. Wash heavy garments separately to prevent friction damage.</span>
+          </li>
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Keep heat low for synthetics:</strong> High dryer heat melts, warps, and weakens polyester, nylon, and elastane gym wear. Always dry synthetics on low heat or hang dry.</span>
+          </li>
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Iron inside-out:</strong> Soleplates can create permanent shiny burn marks on dark cottons and synthetic blends. Always iron inside-out at the lowest required heat setting.</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- CARD 2: Detergent & Money Saving -->
+      <div class="surface-card p-5 space-y-3.5">
+        <div class="w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
+          <img src="assets/guide_detergent.jpg" alt="Loose line art sketch of detergent bottle and coins" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-sm font-bold text-white tracking-tight font-sans">Detergent & Money Saving</h3>
+            <span class="text-[10px] font-mono surface-secondary px-2 py-0.5 rounded text-neon font-semibold">Cost Efficiency</span>
+          </div>
+          <p class="text-xs text-muted leading-relaxed">
+            Lower your utility costs while protecting clothes from shrinking with smart laundry chemistry.
+          </p>
+        </div>
+        <ul class="space-y-2 text-xs text-neutral-300 font-sans pt-1">
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Cold water saves real money:</strong> Around 90% of a washer's energy is spent heating water. Washing at 20°C - 30°C cuts electricity bills significantly and prevents clothes from shrinking.</span>
+          </li>
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Avoid heavy dyes & perfumes:</strong> Read detergent labels carefully. Heavy fragrances and dyes coat fibers with waxy residue that traps sweat bacteria and stiffens towels.</span>
+          </li>
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Measure your detergent:</strong> Modern formulas are concentrated. Pouring past line 2 on the cap leaves a sticky film that actually attracts more dirt.</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- CARD 3: Fabric Purchasing Red Flags -->
+      <div class="surface-card p-5 space-y-3.5">
+        <div class="w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
+          <img src="assets/guide_fabric_flags.jpg" alt="Loose line art sketch of garment tag" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-sm font-bold text-white tracking-tight font-sans">Fabric Purchasing Red Flags</h3>
+            <span class="text-[10px] font-mono surface-secondary px-2 py-0.5 rounded text-neon font-semibold">Smart Buying</span>
+          </div>
+          <p class="text-xs text-muted leading-relaxed">
+            How to inspect care tags before buying so you don't buy garments destined to fail in dorm washers.
+          </p>
+        </div>
+        <ul class="space-y-2 text-xs text-neutral-300 font-sans pt-1">
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Beware cheap polyesters:</strong> Low-grade fast-fashion synthetics trap body odor permanently (bacteria bonds to polyester) and pill after two heavy cycles.</span>
+          </li>
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Invest in durable natural staples:</strong> 100% combed cotton, linen blends, and modal survive frequent heavy washing cycles without thinning or losing structure.</span>
+          </li>
+          <li class="flex items-start space-x-2">
+            <span class="text-neon font-bold leading-tight">•</span>
+            <span><strong class="text-white">Check tag care requirements:</strong> If a basic everyday college shirt has a "Dry Clean Only" circle symbol, skip it. Cleaning costs will exceed the garment price in weeks.</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- CARD 4: The Reckless Washing Graveyard -->
+      <div class="surface-card p-5 space-y-3.5">
+        <div class="w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
+          <img src="assets/guide_graveyard.jpg" alt="Loose line art sketch of shrunken ruined sweater" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-sm font-bold text-white tracking-tight font-sans">The Reckless Washing Graveyard</h3>
+            <span class="text-[10px] font-mono bg-red-950/60 text-red-400 px-2 py-0.5 rounded font-semibold">Avoid Disasters</span>
+          </div>
+          <p class="text-xs text-muted leading-relaxed">
+            Disastrous laundry habits that cause permanent, irreversible clothing destruction.
+          </p>
+        </div>
+        <ul class="space-y-2 text-xs text-neutral-300 font-sans pt-1">
+          <li class="flex items-start space-x-2">
+            <span class="text-red-400 font-bold leading-tight">•</span>
+            <span><strong class="text-white">The hot wool shrink catastrophe:</strong> Thermal shock from warm water and tumble dryers causes wool scales to interlock tightly, irreversibly shrinking your favorite knit into doll clothing.</span>
+          </li>
+          <li class="flex items-start space-x-2">
+            <span class="text-red-400 font-bold leading-tight">•</span>
+            <span><strong class="text-white">Washer drum overloading:</strong> Jamming a week of clothes into a single load prevents water movement, causing violent friction tears, broken zippers, and stretched collars.</span>
+          </li>
+          <li class="flex items-start space-x-2">
+            <span class="text-red-400 font-bold leading-tight">•</span>
+            <span><strong class="text-white">Detergent residue buildup:</strong> Excess detergent doesn't wash cleaner; it leaves a sticky residue buildup that traps mildew odor and irritates your skin.</span>
+          </li>
+        </ul>
+      </div>
+
+    </section>
+
+    <!-- FIXED 3-TAB BOTTOM NAVIGATION BAR -->
+    <nav id="bottom-nav"
+      class="bottom-nav absolute bottom-0 inset-x-0 z-30 h-16 flex items-center justify-around px-6 pb-safe pointer-events-auto">
+
+      <!-- Tab 1: Home -->
+      <button id="tab-home" class="tab-btn active py-1 px-5">
+        <i data-lucide="home" class="w-5 h-5 mb-1"></i>
+        <span class="text-[11px] font-medium tracking-tight">Home</span>
+      </button>
+
+      <!-- Tab 2: Scan -->
+      <button id="tab-scan" class="tab-btn py-1 px-5">
+        <i data-lucide="camera" class="w-5 h-5 mb-1"></i>
+        <span class="text-[11px] font-medium tracking-tight">Scan</span>
+      </button>
+
+      <!-- Tab 3: Profile -->
+      <button id="tab-profile" class="tab-btn py-1 px-5">
+        <i data-lucide="user" class="w-5 h-5 mb-1"></i>
+        <span class="text-[11px] font-medium tracking-tight">Profile</span>
+      </button>
+    </nav>
+
+    <!-- WARDROBE CLOSET MODAL -->
+    <div id="modal-wardrobe-closet" style="display: none;"
+      class="modal-overlay modal-hidden fixed inset-0 z-50 bg-black/90 items-end sm:items-center justify-center p-3">
+      <div class="modal-card max-w-sm w-full surface-card p-5 flex flex-col max-h-[85vh]">
+        <div class="flex items-center justify-between pb-3 border-b border-secondary">
+          <div class="flex items-center space-x-2">
+            <h3 class="text-sm font-bold text-white">Saved Wardrobe</h3>
+            <span id="archive-count-badge"
+              class="text-[10px] font-mono px-2 py-0.5 rounded-full surface-secondary text-neon">
+              0 Items
+            </span>
+          </div>
+          <button id="btn-close-wardrobe-modal"
+            class="w-7 h-7 rounded-full surface-secondary text-neutral-400 hover:text-white flex items-center justify-center cursor-pointer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-1 my-3">
+          <div id="archive-grid" class="grid grid-cols-2 gap-3">
+            <!-- Populated from IndexedDB -->
+          </div>
+          <div id="archive-empty-state" class="hidden flex flex-col items-center justify-center p-6 text-center my-6">
+            <p class="text-xs text-muted">No saved garments yet.</p>
+          </div>
+        </div>
+
+        <button id="btn-dismiss-closet"
+          class="w-full py-2.5 rounded-xl surface-secondary text-white text-xs font-bold cursor-pointer">
+          Done
+        </button>
+      </div>
+    </div>
+
+    <!-- GARMENT DETAIL MODAL -->
+    <div id="garment-detail-modal" style="display: none;"
+      class="modal-overlay modal-hidden fixed inset-0 z-50 bg-black/90 items-center justify-center p-4">
+      <div class="modal-card max-w-sm w-full surface-card p-5 flex flex-col max-h-[85vh] overflow-hidden">
+
+        <div class="relative w-full h-44 rounded-xl overflow-hidden bg-black shrink-0 flex items-center justify-center">
+          <img id="detail-image" src="" alt="Garment Preview" class="w-full h-full object-cover">
+          <button id="btn-close-detail"
+            class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/80 text-white flex items-center justify-center cursor-pointer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="mt-3.5 pb-2 border-b border-secondary flex items-center justify-between">
+          <h3 id="detail-nickname" class="text-sm font-bold text-white tracking-tight truncate pr-2">Vintage Denim
+            Jacket</h3>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded surface-secondary text-neon shrink-0">Saved</span>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar my-3 space-y-2 pr-1">
+          <div id="detail-rules-list" class="space-y-2"></div>
+        </div>
+
+        <div class="pt-3 border-t border-secondary flex items-center space-x-2">
+          <button id="btn-delete-garment"
+            class="py-2.5 px-3 rounded-xl bg-red-950 text-red-400 text-xs font-semibold cursor-pointer">
+            Delete
+          </button>
+          <button id="btn-dismiss-detail"
+            class="flex-1 py-2.5 px-4 rounded-xl surface-secondary text-white text-xs font-bold cursor-pointer">
+            Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SAVE TO WARDROBE NICKNAME MODAL -->
+    <div id="modal-save-garment" style="display: none;"
+      class="modal-overlay modal-hidden fixed inset-0 z-50 bg-black/90 items-center justify-center p-4">
+      <div class="modal-card max-w-sm w-full surface-card p-5">
+        <h3 class="text-sm font-bold text-white mb-1.5">Save to Wardrobe</h3>
+        <p class="text-xs text-muted mb-3">Enter a nickname for this item:</p>
+
+        <input id="input-garment-nickname" type="text" placeholder="e.g. Denim Jacket"
+          class="w-full px-3.5 py-2.5 rounded-xl surface-secondary text-white text-xs focus:outline-none mb-4" />
+
+        <div class="flex items-center space-x-2">
+          <button id="btn-cancel-save"
+            class="flex-1 py-2.5 rounded-xl surface-secondary text-neutral-300 text-xs font-semibold cursor-pointer">Cancel</button>
+          <button id="btn-confirm-save"
+            class="flex-1 py-2.5 rounded-xl bg-neon text-black text-xs font-bold cursor-pointer">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast"
+      class="hidden absolute top-16 inset-x-6 z-50 p-3 rounded-xl surface-secondary text-neon text-xs text-center">
+      Copied to clipboard
+    </div>
+
+  </main>
+
+  <!-- Application Logic Modules -->
+  <script type="module" src="js/app.js?v=1.3"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('[PWA] Service Worker registered:', reg.scope))
+          .catch((err) => console.log('[PWA] Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+
+</html>
