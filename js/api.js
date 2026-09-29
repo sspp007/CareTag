@@ -6,14 +6,14 @@
 
 export const USE_MOCK_API = false;
 
-// Optional production backend URL (e.g., 'https://caretag-backend.onrender.com')
-export const PRODUCTION_API_URL = '';
+// Production backend URL deployed on Render
+export const PRODUCTION_API_URL = 'https://caretag-1.onrender.com';
 
 /**
  * Dynamically resolves the API base URL across Localhost, Vercel, and custom deployments.
  */
 export const getBaseUrl = () => {
-  if (typeof window === 'undefined') return 'http://localhost:8000';
+  if (typeof window === 'undefined') return 'https://caretag-1.onrender.com';
 
   // 1. User-configured override stored in localStorage
   const customUrl = localStorage.getItem('caretag_api_url');
@@ -26,14 +26,14 @@ export const getBaseUrl = () => {
     return window.CARETAG_API_URL.trim().replace(/\/+$/, '');
   }
 
-  // 3. Static production URL if defined
-  if (PRODUCTION_API_URL && PRODUCTION_API_URL.trim()) {
-    return PRODUCTION_API_URL.trim().replace(/\/+$/, '');
-  }
-
-  // 4. Same-origin if served by FastAPI on port 8000
+  // 3. If running on local dev machine on port 8000
   if (window.location && window.location.port === '8000') {
     return window.location.origin;
+  }
+
+  // 4. Default to live production URL
+  if (PRODUCTION_API_URL && PRODUCTION_API_URL.trim()) {
+    return PRODUCTION_API_URL.trim().replace(/\/+$/, '');
   }
 
   // 5. Localhost fallback
@@ -41,13 +41,11 @@ export const getBaseUrl = () => {
     return 'http://localhost:8000';
   }
 
-  // 6. Remote deployment fallback
-  return window.location.protocol === 'https:' ? 'https://localhost:8000' : 'http://localhost:8000';
+  return 'https://caretag-1.onrender.com';
 };
 
 export const API_BASE_URL = getBaseUrl();
 export const API_ENDPOINT = `${API_BASE_URL}/api/v1/detect-symbols`;
-export const API_ENDPOINT = 'https://caretag-1.onrender.com/api/v1/detect-symbols';
 
 export function setCustomApiUrl(url) {
   if (!url || !url.trim()) {
@@ -241,7 +239,9 @@ async function callFastApiBackend(imagePayload) {
   formData.append('confidence_threshold', '0.20');
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for Render cold boot
+
+  console.log(`[CareTag API] Sending image (${imageBlob.size} bytes) to ${endpoint}...`);
 
   try {
     const response = await fetch(endpoint, {
@@ -265,6 +265,7 @@ async function callFastApiBackend(imagePayload) {
     }
 
     const data = await response.json();
+    console.log('[CareTag API] Live inference result received:', data);
     return data;
   } catch (err) {
     clearTimeout(timeoutId);
