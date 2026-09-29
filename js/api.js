@@ -47,6 +47,7 @@ export const getBaseUrl = () => {
 
 export const API_BASE_URL = getBaseUrl();
 export const API_ENDPOINT = `${API_BASE_URL}/api/v1/detect-symbols`;
+export const API_ENDPOINT = 'https://caretag-1.onrender.com/api/v1/detect-symbols';
 
 export function setCustomApiUrl(url) {
   if (!url || !url.trim()) {
@@ -259,7 +260,7 @@ async function callFastApiBackend(imagePayload) {
       try {
         const errorJson = await response.json();
         detailMsg = errorJson.detail || detailMsg;
-      } catch (_) {}
+      } catch (_) { }
       throw new Error(`Model API error (${response.status}): ${detailMsg}`);
     }
 
