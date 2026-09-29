@@ -251,13 +251,26 @@
 
       </div>
 
-      <!-- Action Controls (Floating Flat Shutter Button) -->
+      <!-- Action Controls (Floating Flat Shutter Button, Upload, & Status) -->
       <div id="action-controls"
-        class="absolute bottom-0 inset-x-0 z-20 pb-20 p-5 flex flex-col items-center pointer-events-auto">
+        class="absolute bottom-0 inset-x-0 z-20 pb-20 p-5 flex items-center justify-center space-x-6 pointer-events-auto">
+        <button id="btn-upload-file"
+          class="w-12 h-12 rounded-full surface-card text-neutral-300 hover:text-neon flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+          title="Upload Tag Photo">
+          <i data-lucide="image" class="w-5 h-5"></i>
+        </button>
+        <input type="file" id="tag-file-input" accept="image/*" class="hidden">
+
         <button id="btn-scan"
-          class="w-16 h-16 rounded-full bg-neon text-black flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
+          class="w-16 h-16 rounded-full bg-neon text-black flex items-center justify-center active:scale-95 transition-transform cursor-pointer shadow-lg shadow-neon/20"
           aria-label="Scan Tag">
           <i data-lucide="camera" class="w-7 h-7 text-black stroke-[2.5]"></i>
+        </button>
+
+        <button id="btn-server-status"
+          class="w-12 h-12 rounded-full surface-card text-neutral-300 hover:text-neon flex items-center justify-center cursor-pointer active:scale-95 transition-all relative"
+          title="Model Server Status">
+          <div id="backend-status-dot" class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></div>
         </button>
       </div>
 

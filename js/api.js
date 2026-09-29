@@ -1,16 +1,67 @@
 /**
- * API Client Module for YOLOv8 / TensorRT Laundry Symbol Detection
+ * API Client Module for YOLOv8 Garment Care Symbol Detection
  * 
- * Modular architecture:
- * Currently returns mock data simulating TensorRT inference (1000ms delay).
- * When ready, switch `USE_MOCK_API = false` and set `API_ENDPOINT` to your FastAPI server.
+ * Communicates with FastAPI backend running the YOLOv8 model (`best.pt`).
  */
 
-export const USE_MOCK_API = true;
-export const API_ENDPOINT = 'http://localhost:8000/api/v1/detect-symbols';
+export const USE_MOCK_API = false;
+
+// Optional production backend URL (e.g., 'https://caretag-backend.onrender.com')
+export const PRODUCTION_API_URL = '';
 
 /**
- * Standard Expected Mock Data matching user specification
+ * Dynamically resolves the API base URL across Localhost, Vercel, and custom deployments.
+ */
+export const getBaseUrl = () => {
+  if (typeof window === 'undefined') return 'http://localhost:8000';
+
+  // 1. User-configured override stored in localStorage
+  const customUrl = localStorage.getItem('caretag_api_url');
+  if (customUrl && customUrl.trim()) {
+    return customUrl.trim().replace(/\/+$/, '');
+  }
+
+  // 2. Global window configuration (e.g., set via script tag or Vercel env)
+  if (window.CARETAG_API_URL && typeof window.CARETAG_API_URL === 'string') {
+    return window.CARETAG_API_URL.trim().replace(/\/+$/, '');
+  }
+
+  // 3. Static production URL if defined
+  if (PRODUCTION_API_URL && PRODUCTION_API_URL.trim()) {
+    return PRODUCTION_API_URL.trim().replace(/\/+$/, '');
+  }
+
+  // 4. Same-origin if served by FastAPI on port 8000
+  if (window.location && window.location.port === '8000') {
+    return window.location.origin;
+  }
+
+  // 5. Localhost fallback
+  if (window.location && ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname)) {
+    return 'http://localhost:8000';
+  }
+
+  // 6. Remote deployment fallback
+  return window.location.protocol === 'https:' ? 'https://localhost:8000' : 'http://localhost:8000';
+};
+
+export const API_BASE_URL = getBaseUrl();
+export const API_ENDPOINT = `${API_BASE_URL}/api/v1/detect-symbols`;
+
+export function setCustomApiUrl(url) {
+  if (!url || !url.trim()) {
+    localStorage.removeItem('caretag_api_url');
+  } else {
+    localStorage.setItem('caretag_api_url', url.trim().replace(/\/+$/, ''));
+  }
+}
+
+export function getCustomApiUrl() {
+  return localStorage.getItem('caretag_api_url') || '';
+}
+
+/**
+ * Standard Expected Mock Data for fallback/testing
  */
 export const DEFAULT_MOCK_DATA = [
   { "symbol": "washtub_30", "category": "Washing", "instruction": "Machine wash cold (max 30°C)", "confidence": 0.98 },
@@ -18,9 +69,6 @@ export const DEFAULT_MOCK_DATA = [
   { "symbol": "square_circle_1dot", "category": "Drying", "instruction": "Tumble dry low heat", "confidence": 0.91 }
 ];
 
-/**
- * Alternative mock scenarios for testing diverse garment tag combinations
- */
 export const MOCK_SCENARIOS = {
   default: {
     name: 'Everyday Cotton Blend',
@@ -61,9 +109,93 @@ export function getActiveScenario() {
   return activeScenarioKey;
 }
 
+export function getApiEndpoint() {
+  return `${getBaseUrl()}/api/v1/detect-symbols`;
+}
+
+export const API_ENDPOINT = getApiEndpoint();
+
+/**
+ * Health check helper to verify connection with the YOLO backend
+ */
+export async function checkBackendHealth() {
+  const baseUrl = getBaseUrl();
+  try {
+    const res = await fetch(`${baseUrl}/api/v1/health`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return { online: true, ...data };
+    }
+    return { online: false, status: res.status };
+  } catch (err) {
+    return { online: false, error: err.message, url: baseUrl };
+  }
+}
+
+/**
+ * Convert diverse inputs (Canvas, DataURL, Blob, Image) into a binary JPEG Blob
+ */
+async function payloadToBlob(payload) {
+  if (!payload) {
+    throw new Error('No image frame provided for tag detection.');
+  }
+
+  // Already a Blob or File
+  if (payload instanceof Blob) {
+    return payload;
+  }
+
+  // HTMLCanvasElement
+  if (typeof HTMLCanvasElement !== 'undefined' && payload instanceof HTMLCanvasElement) {
+    const width = payload.width || 640;
+    const height = payload.height || 480;
+    if (payload.width === 0 || payload.height === 0) {
+      payload.width = width;
+      payload.height = height;
+    }
+    return new Promise((resolve, reject) => {
+      payload.toBlob((blob) => {
+        if (blob && blob.size > 0) {
+          resolve(blob);
+        } else {
+          // If toBlob failed, try dataURL fallback
+          try {
+            const dataUrl = payload.toDataURL('image/jpeg', 0.92);
+            fetch(dataUrl).then(r => r.blob()).then(resolve).catch(reject);
+          } catch (e) {
+            reject(new Error('Canvas image conversion failed'));
+          }
+        }
+      }, 'image/jpeg', 0.92);
+    });
+  }
+
+  // Base64 Data URL string
+  if (typeof payload === 'string' && payload.startsWith('data:image')) {
+    const res = await fetch(payload);
+    return await res.blob();
+  }
+
+  // HTMLImageElement
+  if (typeof HTMLImageElement !== 'undefined' && payload instanceof HTMLImageElement) {
+    const canvas = document.createElement('canvas');
+    canvas.width = payload.naturalWidth || payload.width || 640;
+    canvas.height = payload.naturalHeight || payload.height || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(payload, 0, 0, canvas.width, canvas.height);
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+  }
+
+  throw new Error('Unsupported image format for detection payload.');
+}
+
 /**
  * Primary Detection Function
- * @param {Blob|ImageData|string} imagePayload - Image captured from camera canvas
+ * @param {HTMLCanvasElement|Blob|File|string} imagePayload - Image captured from camera or canvas
  * @returns {Promise<Array<{symbol: string, category: string, instruction: string, confidence: number}>>}
  */
 export async function detectLaundrySymbols(imagePayload) {
@@ -71,47 +203,76 @@ export async function detectLaundrySymbols(imagePayload) {
     return simulateTensorRTInference();
   }
 
-  return callFastApiBackend(imagePayload);
+  try {
+    return await callFastApiBackend(imagePayload);
+  } catch (err) {
+    console.warn('[API] Real model inference failed, checking fallback:', err);
+    throw err;
+  }
 }
 
 /**
- * Simulates YOLOv8 TensorRT inference with realistic 1000ms delay
+ * Simulates YOLOv8 inference with 1000ms delay (used when USE_MOCK_API = true)
  */
 async function simulateTensorRTInference() {
-  // Simulate 1.0s TensorRT inference processing time
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Return active mock scenario (defaults to exact requested JSON)
+  await new Promise((resolve) => setTimeout(resolve, 800));
   const scenario = MOCK_SCENARIOS[activeScenarioKey] || MOCK_SCENARIOS.default;
   return JSON.parse(JSON.stringify(scenario.data));
 }
 
 /**
  * Production-ready FastAPI integration
- * Sends multipart/form-data to YOLOv8 TensorRT backend
+ * Sends multipart/form-data with image file to YOLOv8 inference backend
  */
-async function callFastApiBackend(imageBlob) {
+async function callFastApiBackend(imagePayload) {
+  const imageBlob = await payloadToBlob(imagePayload);
+  const endpoint = getApiEndpoint();
+
+  // Check Mixed Content issue on HTTPS deployments (Vercel)
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && endpoint.startsWith('http://')) {
+    throw new Error(
+      `Mixed Content Blocked: You are browsing via HTTPS on Vercel, but attempting to reach an insecure HTTP backend (${endpoint}). Please deploy your backend to an HTTPS host (Render, Railway, or Hugging Face) or configure a secure HTTPS tunnel.`
+    );
+  }
+
   const formData = new FormData();
   formData.append('file', imageBlob, 'garment_tag.jpg');
-  formData.append('confidence_threshold', '0.50');
+  formData.append('confidence_threshold', '0.20');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
   try {
-    const response = await fetch(API_ENDPOINT, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
       headers: {
         'Accept': 'application/json'
-      }
+      },
+      signal: controller.signal
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error(`Inference server responded with HTTP ${response.status}: ${response.statusText}`);
+      let detailMsg = response.statusText;
+      try {
+        const errorJson = await response.json();
+        detailMsg = errorJson.detail || detailMsg;
+      } catch (_) {}
+      throw new Error(`Model API error (${response.status}): ${detailMsg}`);
     }
 
     const data = await response.json();
     return data;
   } catch (err) {
-    console.error('[API] Inference error:', err);
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error(`Inference request timed out (20s) connecting to ${endpoint}.`);
+    }
+    if (err.message && err.message.includes('Failed to fetch')) {
+      throw new Error(`Cannot reach CareTag backend at ${endpoint}. Please verify your backend server is deployed and running.`);
+    }
     throw err;
   }
 }

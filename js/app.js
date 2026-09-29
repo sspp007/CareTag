@@ -3,7 +3,7 @@
  * Flat Native App Architecture (PWA Standalone: Home, Scan, Profile)
  */
 
-import { detectLaundrySymbols } from './api.js';
+import { detectLaundrySymbols, checkBackendHealth, API_BASE_URL, getCustomApiUrl, setCustomApiUrl } from './api.js';
 import { getSymbolSvg, SYMBOL_FAMILIES } from './symbols.js';
 import { initDB, saveGarment, getAllGarments, getGarmentById, deleteGarment } from './storage.js';
 
@@ -64,6 +64,10 @@ class GarmentScannerApp {
       btnTorch: document.getElementById('btn-torch'),
       btnFlipCamera: document.getElementById('btn-flip-camera'),
       btnScan: document.getElementById('btn-scan'),
+      btnUploadFile: document.getElementById('btn-upload-file'),
+      tagFileInput: document.getElementById('tag-file-input'),
+      btnServerStatus: document.getElementById('btn-server-status'),
+      backendStatusDot: document.getElementById('backend-status-dot'),
       reticleBox: document.getElementById('reticle-box'),
       hudStatusHint: document.getElementById('hud-status-hint'),
       loadingOverlay: document.getElementById('loading-overlay'),
@@ -129,6 +133,9 @@ class GarmentScannerApp {
     this.closeWardrobeModal();
     this.closeGarmentDetail();
 
+    // Check Backend Server Status
+    this.checkApiStatus();
+
     // Default to Home view (camera is deferred until Scan tab is tapped)
     this.switchTab('home');
   }
@@ -174,6 +181,58 @@ class GarmentScannerApp {
     if (this.dom.btnScanAgain) this.dom.btnScanAgain.addEventListener('click', () => this.resetScanner());
     if (this.dom.btnCloseResults) this.dom.btnCloseResults.addEventListener('click', () => this.dismissResultsSheet());
     if (this.dom.resultsDragHandle) this.dom.resultsDragHandle.addEventListener('click', () => this.dismissResultsSheet());
+
+    // File Upload Action
+    if (this.dom.btnUploadFile) {
+      this.dom.btnUploadFile.addEventListener('click', () => {
+        this.dom.tagFileInput?.click();
+      });
+    }
+
+    if (this.dom.tagFileInput) {
+      this.dom.tagFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = this.dom.captureCanvas;
+          canvas.width = img.naturalWidth || 640;
+          canvas.height = img.naturalHeight || 480;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.classList.remove('hidden');
+
+          if (this.dom.videoFeed && !this.dom.videoFeed.classList.contains('hidden')) {
+            try { this.dom.videoFeed.pause(); } catch (_) {}
+          }
+
+          await this.runInferenceOnCanvas(canvas);
+        };
+        img.src = URL.createObjectURL(file);
+        this.dom.tagFileInput.value = '';
+      });
+    }
+
+    // Backend Connection Status Indicator Click & Custom URL config
+    if (this.dom.btnServerStatus) {
+      this.dom.btnServerStatus.addEventListener('click', async () => {
+        const health = await checkBackendHealth();
+        if (health.online) {
+          this.showToast(`CareTag Model Online (${health.classes_count || 86} classes)`);
+        } else {
+          const currentUrl = getCustomApiUrl() || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? 'https://' : 'http://localhost:8000');
+          const newUrl = prompt(
+            'CareTag Backend is currently offline or unreachable.\n\nEnter your deployed backend URL (e.g. https://caretag.onrender.com or your ngrok HTTPS URL):',
+            currentUrl
+          );
+          if (newUrl !== null) {
+            setCustomApiUrl(newUrl);
+            await this.checkApiStatus(true);
+          }
+        }
+      });
+    }
 
     // Hardware Controls
     if (this.dom.btnTorch) this.dom.btnTorch.addEventListener('click', () => this.toggleTorch());
@@ -464,27 +523,37 @@ class GarmentScannerApp {
    */
   async handleScanTag() {
     if (this.state === AppState.INFERENCING) return;
+    this.freezeFrame();
+    await this.runInferenceOnCanvas(this.dom.captureCanvas);
+  }
 
+  /**
+   * Runs inference on the given canvas element
+   */
+  async runInferenceOnCanvas(canvas) {
     if ('vibrate' in navigator) {
       navigator.vibrate(40);
     }
 
-    // Step 1: Capture Frame & Pause Camera
-    this.freezeFrame();
     this.state = AppState.INFERENCING;
     this.updateHudState();
 
-    // Step 2: Show Loading Overlay
+    // Cache image preview for wardrobe save
+    try {
+      this.currentCapturedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+    } catch (_) {}
+
+    // Show Loading Overlay
     this.dom.loadingOverlay.classList.remove('hidden');
-    this.dom.inferenceStepTitle.textContent = 'Detecting Care Symbols';
-    this.dom.inferenceStepDesc.textContent = 'Analyzing tag frame...';
+    this.dom.inferenceStepTitle.textContent = 'CareTag AI Inference';
+    this.dom.inferenceStepDesc.textContent = 'Analyzing symbols with YOLO model...';
 
     try {
-      // Step 3: Run Inference (Mock or FastAPI)
-      const results = await detectLaundrySymbols(this.dom.captureCanvas);
+      // Run Inference via real FastAPI backend
+      const results = await detectLaundrySymbols(canvas);
       this.lastDetectedResults = results;
 
-      // Step 4: Populate & Present Results
+      // Populate & Present Results
       this.populateResultsUI(results);
       
       setTimeout(() => {
@@ -492,12 +561,12 @@ class GarmentScannerApp {
         this.showResultsSheet();
         this.state = AppState.RESULTS;
         this.updateHudState();
-      }, 350);
+      }, 300);
 
     } catch (err) {
       console.error('[Inference] Error during symbol detection:', err);
       this.dom.loadingOverlay.classList.add('hidden');
-      this.showToast('Detection error: ' + err.message);
+      this.showToast(err.message || 'Detection failed');
       this.resetScanner();
     }
   }
@@ -514,6 +583,133 @@ class GarmentScannerApp {
       
       video.pause();
       canvas.classList.remove('hidden');
+    } else {
+      // In synthetic mode, render care tag onto canvas
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext('2d');
+      this.drawSyntheticCareTag(ctx, canvas.width, canvas.height);
+      canvas.classList.remove('hidden');
+    }
+  }
+
+  drawSyntheticCareTag(ctx, width, height) {
+    ctx.fillStyle = '#18181b';
+    ctx.fillRect(0, 0, width, height);
+
+    const tagW = Math.min(width * 0.75, 420);
+    const tagH = Math.min(height * 0.65, 260);
+    const tagX = (width - tagW) / 2;
+    const tagY = (height - tagH) / 2;
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(tagX, tagY, tagW, tagH, 12);
+    } else {
+      ctx.rect(tagX, tagY, tagW, tagH);
+    }
+    ctx.fill();
+
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 18px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('100% COTTON', width / 2, tagY + 40);
+
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('CARE INSTRUCTIONS / ISO 3758', width / 2, tagY + 65);
+
+    const symY = tagY + 120;
+    const symSpacing = tagW / 5;
+    const startX = tagX + symSpacing * 0.6;
+
+    // Washtub 30
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(startX - 18, symY - 10);
+    ctx.lineTo(startX + 18, symY - 10);
+    ctx.lineTo(startX + 14, symY + 16);
+    ctx.lineTo(startX - 14, symY + 16);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.font = 'bold 10px monospace';
+    ctx.fillStyle = '#0f172a';
+    ctx.fillText('30°', startX, symY + 8);
+
+    // Triangle crossed
+    const s2X = startX + symSpacing;
+    ctx.beginPath();
+    ctx.moveTo(s2X, symY - 14);
+    ctx.lineTo(s2X + 16, symY + 16);
+    ctx.lineTo(s2X - 16, symY + 16);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(s2X - 14, symY + 14);
+    ctx.lineTo(s2X + 14, symY - 12);
+    ctx.moveTo(s2X + 14, symY + 14);
+    ctx.lineTo(s2X - 14, symY - 12);
+    ctx.stroke();
+
+    // Square circle (Tumble dry)
+    const s3X = startX + symSpacing * 2;
+    ctx.strokeRect(s3X - 16, symY - 14, 32, 30);
+    ctx.beginPath();
+    ctx.arc(s3X, symY + 1, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(s3X, symY + 1, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+
+    // Iron
+    const s4X = startX + symSpacing * 3;
+    ctx.beginPath();
+    ctx.moveTo(s4X - 16, symY + 12);
+    ctx.lineTo(s4X + 16, symY + 12);
+    ctx.bezierCurveTo(s4X + 18, symY, s4X + 10, symY - 12, s4X, symY - 12);
+    ctx.lineTo(s4X - 16, symY - 12);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(s4X - 2, symY + 2, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px monospace';
+    ctx.fillText('MADE IN PORTUGAL • RN 98321', width / 2, tagY + tagH - 24);
+  }
+
+  async checkApiStatus(showToastOnDemand = false) {
+    try {
+      const health = await checkBackendHealth();
+      if (health.online) {
+        if (this.dom.backendStatusDot) {
+          this.dom.backendStatusDot.className = 'w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50';
+          this.dom.btnServerStatus?.setAttribute('title', `CareTag Model: Online (${health.classes_count || 86} classes)`);
+        }
+        if (showToastOnDemand) {
+          this.showToast(`CareTag Model Online (${health.classes_count || 86} classes)`);
+        }
+      } else {
+        if (this.dom.backendStatusDot) {
+          this.dom.backendStatusDot.className = 'w-3 h-3 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50';
+          this.dom.btnServerStatus?.setAttribute('title', 'Backend Offline (Port 8000)');
+        }
+        if (showToastOnDemand) {
+          this.showToast('Backend offline. Please start uvicorn on port 8000.');
+        }
+      }
+    } catch (_) {
+      if (this.dom.backendStatusDot) {
+        this.dom.backendStatusDot.className = 'w-3 h-3 rounded-full bg-amber-500';
+      }
     }
   }
 

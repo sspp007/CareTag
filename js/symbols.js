@@ -38,6 +38,12 @@ export const SYMBOL_FAMILIES = {
     badgeColor: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
     iconColor: '#f43f5e',
     description: 'Dry cleaning & wet cleaning methods'
+  },
+  Detected: {
+    name: 'Detected',
+    badgeColor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
+    iconColor: '#34d399',
+    description: 'Recognized care instruction'
   }
 };
 
@@ -66,12 +72,36 @@ export function getSymbolSvg(symbolId, size = 36) {
           <text x="24" y="32" font-size="10" font-weight="bold" fill="${stroke}" stroke="none" text-anchor="middle" font-family="monospace">40°</text>
         </svg>`;
 
+    case 'washtub_60':
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 16h34l-3.2 18.2a4 4 0 0 1-3.9 3.3H14.1a4 4 0 0 1-3.9-3.3L7 16Z"/>
+          <path d="M7 21c3.5 1.5 6.5 1.5 10 0s6.5-1.5 10 0 6.5 1.5 10 0 3-1 4-1"/>
+          <text x="24" y="32" font-size="10" font-weight="bold" fill="${stroke}" stroke="none" text-anchor="middle" font-family="monospace">60°</text>
+        </svg>`;
+
+    case 'washtub_95':
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 16h34l-3.2 18.2a4 4 0 0 1-3.9 3.3H14.1a4 4 0 0 1-3.9-3.3L7 16Z"/>
+          <path d="M7 21c3.5 1.5 6.5 1.5 10 0s6.5-1.5 10 0 6.5 1.5 10 0 3-1 4-1"/>
+          <text x="24" y="32" font-size="10" font-weight="bold" fill="${stroke}" stroke="none" text-anchor="middle" font-family="monospace">95°</text>
+        </svg>`;
+
     case 'washtub_hand':
       return `
         <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
           <path d="M7 18h34l-3.2 17.2a4 4 0 0 1-3.9 3.3H14.1a4 4 0 0 1-3.9-3.3L7 18Z"/>
           <path d="M7 23c3.5 1.5 6.5 1.5 10 0s6.5-1.5 10 0 6.5 1.5 10 0"/>
           <path d="M24 10v7M21 12v5M27 12v5M24 19a2 2 0 0 0 2-2V8a1 1 0 0 0-2 0v2"/>
+        </svg>`;
+
+    case 'washtub_crossed':
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 18h34l-3.2 17.2a4 4 0 0 1-3.9 3.3H14.1a4 4 0 0 1-3.9-3.3L7 18Z"/>
+          <line x1="10" y1="12" x2="38" y2="38" stroke-width="2.5" />
+          <line x1="38" y1="12" x2="10" y2="38" stroke-width="2.5" />
         </svg>`;
 
     // --- BLEACHING (TRIANGLE) ---
@@ -123,6 +153,25 @@ export function getSymbolSvg(symbolId, size = 36) {
           <path d="M8 32h30a4 4 0 0 0 4-4c0-5-5-12-14-12H8v16Z" />
           <path d="M12 16V12h14" />
           <circle cx="24" cy="26" r="2" fill="${stroke}" stroke="none" />
+        </svg>`;
+
+    case 'iron_2dots':
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 32h30a4 4 0 0 0 4-4c0-5-5-12-14-12H8v16Z" />
+          <path d="M12 16V12h14" />
+          <circle cx="20" cy="26" r="2" fill="${stroke}" stroke="none" />
+          <circle cx="28" cy="26" r="2" fill="${stroke}" stroke="none" />
+        </svg>`;
+
+    case 'iron_3dots':
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 32h30a4 4 0 0 0 4-4c0-5-5-12-14-12H8v16Z" />
+          <path d="M12 16V12h14" />
+          <circle cx="17" cy="26" r="2" fill="${stroke}" stroke="none" />
+          <circle cx="24" cy="26" r="2" fill="${stroke}" stroke="none" />
+          <circle cx="31" cy="26" r="2" fill="${stroke}" stroke="none" />
         </svg>`;
 
     case 'iron_crossed':
