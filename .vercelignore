@@ -1,0 +1,7 @@
+# Exclude backend and Docker files from Vercel static build
+backend/
+models/
+render.yaml
+Dockerfile
+run_backend.sh
+*.pt

@@ -7,8 +7,8 @@ cd "$SCRIPT_DIR"
 
 if [ -f "$SCRIPT_DIR/.venv/bin/uvicorn" ]; then
     echo "Starting CareTag AI Server using project .venv..."
-    exec "$SCRIPT_DIR/.venv/bin/uvicorn" main:app --host 0.0.0.0 --port 8000 --reload
+    exec "$SCRIPT_DIR/.venv/bin/uvicorn" backend.main:app --host 0.0.0.0 --port 8000 --reload
 else
     echo "Starting CareTag AI Server using system uvicorn..."
-    exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    exec uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 fi
