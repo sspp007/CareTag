@@ -297,26 +297,26 @@
         </div>
 
         <!-- MANDATED PROGRESS BARS: SUSTAINABILITY & COMFORT -->
-        <div class="px-5 py-4 space-y-3.5 bg-black/60 border-b border-secondary">
+        <div id="metrics-container" class="px-5 py-4 space-y-3.5 bg-black/60 border-b border-secondary">
           <!-- Sustainability Progress Bar -->
-          <div>
+          <div id="sustainability-metric-card">
             <div class="flex items-center justify-between text-xs mb-1.5 font-mono">
-              <span class="text-neutral-400 font-bold tracking-wider text-[11px]">SUSTAINABILITY 85/100</span>
-              <span class="text-neon font-bold text-[11px]">85%</span>
+              <span id="sustainability-score-label" class="text-neutral-400 font-bold tracking-wider text-[11px]">SUSTAINABILITY 85/100</span>
+              <span id="sustainability-score-pct" class="text-neon font-bold text-[11px]">85%</span>
             </div>
             <div class="metric-progress-track">
-              <div class="metric-progress-fill" style="width: 85%;"></div>
+              <div id="sustainability-progress-bar" class="metric-progress-fill" style="width: 85%;"></div>
             </div>
           </div>
 
           <!-- Comfort Progress Bar -->
-          <div>
+          <div id="comfort-metric-card">
             <div class="flex items-center justify-between text-xs mb-1.5 font-mono">
-              <span class="text-neutral-400 font-bold tracking-wider text-[11px]">COMFORT 90/100</span>
-              <span class="text-neon font-bold text-[11px]">90%</span>
+              <span id="comfort-score-label" class="text-neutral-400 font-bold tracking-wider text-[11px]">COMFORT 90/100</span>
+              <span id="comfort-score-pct" class="text-neon font-bold text-[11px]">90%</span>
             </div>
             <div class="metric-progress-track">
-              <div class="metric-progress-fill" style="width: 90%;"></div>
+              <div id="comfort-progress-bar" class="metric-progress-fill" style="width: 90%;"></div>
             </div>
           </div>
         </div>

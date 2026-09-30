@@ -27,6 +27,7 @@ class GarmentScannerApp {
     this.torchEnabled = false;
     this.hasTorchCapability = false;
     this.lastDetectedResults = null;
+    this.lastDetectedScores = null;
     this.currentCapturedBase64 = null;
     this.currentDetailGarmentId = null;
 
@@ -83,6 +84,14 @@ class GarmentScannerApp {
       btnScanAgain: document.getElementById('btn-scan-again'),
       btnCopyAdvice: document.getElementById('btn-copy-advice'),
       btnSaveWardrobe: document.getElementById('btn-save-wardrobe'),
+
+      // Sustainability & Comfort Metrics
+      sustainabilityScoreLabel: document.getElementById('sustainability-score-label'),
+      sustainabilityScorePct: document.getElementById('sustainability-score-pct'),
+      sustainabilityProgressBar: document.getElementById('sustainability-progress-bar'),
+      comfortScoreLabel: document.getElementById('comfort-score-label'),
+      comfortScorePct: document.getElementById('comfort-score-pct'),
+      comfortProgressBar: document.getElementById('comfort-progress-bar'),
 
       // Profile View Elements
       profileClosetCount: document.getElementById('profile-closet-count'),
@@ -556,11 +565,12 @@ class GarmentScannerApp {
 
     try {
       // Run Inference via real FastAPI backend
-      const results = await detectLaundrySymbols(canvas);
-      this.lastDetectedResults = results;
+      const data = await detectLaundrySymbols(canvas);
+      this.lastDetectedResults = (data && data.symbols) ? data.symbols : data;
+      this.lastDetectedScores = (data && data.scores) ? data.scores : null;
 
       // Populate & Present Results
-      this.populateResultsUI(results);
+      this.populateResultsUI(data);
       
       setTimeout(() => {
         this.dom.loadingOverlay.classList.add('hidden');
@@ -745,10 +755,54 @@ class GarmentScannerApp {
   /**
    * Renders the detected symbol cards into the bottom sheet
    */
-  populateResultsUI(results) {
+  /**
+   * Renders the detected symbol cards into the bottom sheet and updates dynamic metrics
+   */
+  populateResultsUI(data) {
     this.dom.resultsCardsContainer.innerHTML = '';
 
-    if (!results || results.length === 0) {
+    // Locate the DOM elements for the Sustainability and Comfort metrics in the UI
+    const sustPct = this.dom.sustainabilityScorePct 
+      || document.getElementById('sustainability-score-pct') 
+      || document.querySelectorAll('.metric-progress-track')[0]?.parentElement?.querySelectorAll('span')[1];
+    const sustBar = this.dom.sustainabilityProgressBar 
+      || document.getElementById('sustainability-progress-bar') 
+      || document.querySelectorAll('.metric-progress-fill')[0];
+    const sustLabel = this.dom.sustainabilityScoreLabel 
+      || document.getElementById('sustainability-score-label') 
+      || document.querySelectorAll('.metric-progress-track')[0]?.parentElement?.querySelectorAll('span')[0];
+
+    const comfPct = this.dom.comfortScorePct 
+      || document.getElementById('comfort-score-pct') 
+      || document.querySelectorAll('.metric-progress-track')[1]?.parentElement?.querySelectorAll('span')[1];
+    const comfBar = this.dom.comfortProgressBar 
+      || document.getElementById('comfort-progress-bar') 
+      || document.querySelectorAll('.metric-progress-fill')[1];
+    const comfLabel = this.dom.comfortScoreLabel 
+      || document.getElementById('comfort-score-label') 
+      || document.querySelectorAll('.metric-progress-track')[1]?.parentElement?.querySelectorAll('span')[0];
+
+    // Dynamically update the text values (e.g. "85%") and the CSS width of the progress bars using data.scores
+    if (data && data.scores) {
+      const sustVal = typeof data.scores.sustainability === 'number'
+        ? Math.max(0, Math.min(100, Math.round(data.scores.sustainability)))
+        : 85;
+      const comfVal = typeof data.scores.comfort === 'number'
+        ? Math.max(0, Math.min(100, Math.round(data.scores.comfort)))
+        : 90;
+
+      if (sustPct) sustPct.textContent = `${sustVal}%`;
+      if (sustBar) sustBar.style.width = `${sustVal}%`;
+      if (sustLabel) sustLabel.textContent = `SUSTAINABILITY ${sustVal}/100`;
+
+      if (comfPct) comfPct.textContent = `${comfVal}%`;
+      if (comfBar) comfBar.style.width = `${comfVal}%`;
+      if (comfLabel) comfLabel.textContent = `COMFORT ${comfVal}/100`;
+    }
+
+    const symbols = (data && data.symbols) ? data.symbols : (Array.isArray(data) ? data : []);
+
+    if (!symbols || symbols.length === 0) {
       this.dom.resultsCardsContainer.innerHTML = `
         <div class="p-6 text-center text-muted">
           <p class="text-sm">No laundry symbols identified.</p>
@@ -758,7 +812,7 @@ class GarmentScannerApp {
       return;
     }
 
-    const summaryPieces = results.map(r => {
+    const summaryPieces = symbols.map(r => {
       if (r.category === 'Washing') return r.instruction.replace('Machine wash ', '').replace('only', '');
       if (r.category === 'Bleaching') return r.instruction.toLowerCase().includes('do not') ? 'No Bleach' : 'Bleach OK';
       if (r.category === 'Drying') return r.instruction.replace('Tumble dry ', '').replace('Do not tumble dry', 'No Tumble Dry');
@@ -766,7 +820,9 @@ class GarmentScannerApp {
     });
     this.dom.resultsSummaryText.textContent = summaryPieces.slice(0, 3).join(' • ');
 
-    results.forEach((item) => {
+    // Symbol rendering loop: iterate over data.symbols instead of data
+    const symbolList = (data && data.symbols) ? data.symbols : symbols;
+    symbolList.forEach((item) => {
       const family = SYMBOL_FAMILIES[item.category] || {
         badgeColor: 'surface-secondary text-neutral-300',
         iconColor: '#FFFFFF'
@@ -1052,7 +1108,8 @@ class GarmentScannerApp {
       .map(r => `• [${r.category}] ${r.instruction}`)
       .join('\n');
 
-    const fullText = `CareTag - Garment Care Guide:\n${textList}\n\nSustainability: 85/100 | Comfort: 90/100\nISO 3758 Compliant.`;
+    const scores = this.lastDetectedScores || { sustainability: 85, comfort: 90 };
+    const fullText = `CareTag - Garment Care Guide:\n${textList}\n\nSustainability: ${scores.sustainability}/100 | Comfort: ${scores.comfort}/100\nISO 3758 Compliant.`;
 
     try {
       await navigator.clipboard.writeText(fullText);

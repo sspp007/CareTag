@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Optional
 import cv2
 import numpy as np
+import requests
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -63,7 +64,8 @@ SYMBOL_MAP = {
     "ER_18": {"symbol": "circle_p", "category": "Professional Care", "instruction": "Dry clean with PCE only"},
     "ER_19": {"symbol": "circle_crossed", "category": "Professional Care", "instruction": "Do not dry clean"},
     "ER_20": {"symbol": "circle_p", "category": "Professional Care", "instruction": "Gentle professional dry clean"},
-    
+    "ER_27": {"symbol": "Professional care", "category": "Professional Care", "instruction": "Dry clean using standard solvents"},
+
     # Korean Standards (KR_*)
     "KR_1": {"symbol": "washtub_95", "category": "Washing", "instruction": "Machine wash boil (95°C)"},
     "KR_2": {"symbol": "washtub_60", "category": "Washing", "instruction": "Machine wash hot (60°C)"},
@@ -148,10 +150,98 @@ async def health_check():
         "endpoint": "/api/v1/detect-symbols"
     }
 
-@app.post("/api/v1/detect-symbols", response_model=List[SymbolDetection])
+def calculate_garment_metrics(detected_symbols: list) -> dict:
+    """
+    Calculate dynamic sustainability and comfort scores based on detected care symbols
+    and current ambient weather metrics for Ghaziabad from Open-Meteo.
+    """
+    sustainability = 85
+    comfort = 90
+
+    for item in detected_symbols:
+        if isinstance(item, str):
+            sym = item
+            inst = ""
+        elif isinstance(item, dict):
+            sym = item.get("symbol", "")
+            inst = item.get("instruction", "")
+        else:
+            sym = getattr(item, "symbol", "")
+            inst = getattr(item, "instruction", "")
+
+        sym_lower = sym.lower()
+        inst_lower = inst.lower()
+
+        # Rule: subtract 15 from sustainability for tumble dry symbols
+        if (
+            "square_circle" in sym_lower
+            or ("tumble" in sym_lower and "not" not in sym_lower and "crossed" not in sym_lower)
+            or ("tumble" in inst_lower and "not" not in inst_lower and "no " not in inst_lower)
+        ):
+            sustainability -= 15
+        # Rule: subtract 20 for dry cleaning ('circle_p')
+        elif (
+            "circle_p" in sym_lower
+            or ("dry_clean" in sym_lower and "not" not in sym_lower and "crossed" not in sym_lower)
+            or ("dry clean" in inst_lower and "not" not in inst_lower and "no " not in inst_lower and "circle_crossed" not in sym_lower)
+        ):
+            sustainability -= 20
+        # Rule: add 10 for hand washing
+        elif (
+            "washtub_hand" in sym_lower
+            or ("hand" in sym_lower and "wash" in sym_lower)
+            or "hand wash" in inst_lower
+        ):
+            sustainability += 10
+
+    # Fetch ambient temperature and humidity for Ghaziabad from Open-Meteo API
+    try:
+        url = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude": 28.6692,
+            "longitude": 77.4538,
+            "current": "temperature_2m,relative_humidity_2m"
+        }
+        resp = requests.get(url, params=params, timeout=5)
+        if resp.status_code == 200:
+            weather_data = resp.json()
+            current = weather_data.get("current", {})
+            current_weather = weather_data.get("current_weather", {})
+
+            temp = (
+                current.get("temperature_2m")
+                if current.get("temperature_2m") is not None
+                else current.get("temperature", current_weather.get("temperature", weather_data.get("temperature")))
+            )
+            humidity = (
+                current.get("relative_humidity_2m")
+                if current.get("relative_humidity_2m") is not None
+                else current.get("humidity", current_weather.get("humidity", weather_data.get("humidity")))
+            )
+
+            if temp is not None:
+                temp_val = float(temp)
+                hum_val = float(humidity) if humidity is not None else None
+                if hum_val is not None and temp_val > 30 and hum_val > 60:
+                    comfort -= 15
+                elif temp_val > 35:
+                    comfort -= 10
+    except Exception:
+        pass
+
+    # Return bounded scores (min 0, max 100)
+    sustainability = max(0, min(100, sustainability))
+    comfort = max(0, min(100, comfort))
+
+    return {
+        "sustainability": sustainability,
+        "comfort": comfort
+    }
+
+@app.post("/api/v1/detect-symbols")
 async def detect_symbols(
     file: UploadFile = File(...),
-    confidence_threshold: float = Form(0.20)
+    confidence_threshold: float = Form(0.55)
 ):
     """
     Receives an image (multipart/form-data), performs YOLOv8 inference,
@@ -179,8 +269,8 @@ async def detect_symbols(
         img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
 
     # Run YOLOv8 inference with optimal standard 640px tensor input
-    results = model.predict(source=img, imgsz=640, conf=confidence_threshold, verbose=False)
-
+    results = model.predict(source=img, imgsz=640, conf=0.55, verbose=False)
+    
     detections = []
     for r in results:
         if r.boxes is None:
@@ -205,10 +295,11 @@ async def detect_symbols(
     detections.sort(key=lambda d: d.confidence, reverse=True)
     unique_map = {}
     for d in detections:
-        if d.symbol not in unique_map:
-            unique_map[d.symbol] = d
+        if d.category not in unique_map and d.symbol not in unique_map:
+            unique_map[d.category] = d
 
-    return list(unique_map.values())
+    metrics = calculate_garment_metrics(list(unique_map.values()))
+    return {"symbols": list(unique_map.values()), "scores": metrics}
 
 # Mount static frontend files if served directly through FastAPI
 if (ROOT_DIR / "js").is_dir():

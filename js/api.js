@@ -199,7 +199,7 @@ async function payloadToBlob(payload) {
 /**
  * Primary Detection Function
  * @param {HTMLCanvasElement|Blob|File|string} imagePayload - Image captured from camera or canvas
- * @returns {Promise<Array<{symbol: string, category: string, instruction: string, confidence: number}>>}
+ * @returns {Promise<{symbols: Array<{symbol: string, category: string, instruction: string, confidence: number}>, scores: {sustainability: number, comfort: number}}>}
  */
 export async function detectLaundrySymbols(imagePayload) {
   if (USE_MOCK_API) {
@@ -220,7 +220,10 @@ export async function detectLaundrySymbols(imagePayload) {
 async function simulateTensorRTInference() {
   await new Promise((resolve) => setTimeout(resolve, 800));
   const scenario = MOCK_SCENARIOS[activeScenarioKey] || MOCK_SCENARIOS.default;
-  return JSON.parse(JSON.stringify(scenario.data));
+  return {
+    symbols: JSON.parse(JSON.stringify(scenario.data)),
+    scores: scenario.scores || { sustainability: 85, comfort: 90 }
+  };
 }
 
 /**
