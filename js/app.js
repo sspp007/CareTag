@@ -54,6 +54,8 @@ class GarmentScannerApp {
       styleSuggestionText: document.getElementById('style-suggestion-text'),
       cardOpenGuide: document.getElementById('card-open-guide'),
       btnGuideBack: document.getElementById('btn-guide-back'),
+      dashboardTemp: document.getElementById('dashboard-temp'),
+      dashboardCondition: document.getElementById('dashboard-condition'),
 
       // Camera & Scanner Elements
       videoFeed: document.getElementById('camera-feed'),
@@ -144,6 +146,9 @@ class GarmentScannerApp {
 
     // Check Backend Server Status
     this.checkApiStatus();
+
+    // Fetch Live Dashboard Weather
+    this.fetchLiveWeather();
 
     // Default to Home view (camera is deferred until Scan tab is tapped)
     this.switchTab('home');
@@ -1131,12 +1136,60 @@ class GarmentScannerApp {
       toast.classList.add('hidden');
     }, 2500);
   }
+
+  async fetchLiveWeather() {
+    return await fetchLiveWeather();
+  }
+}
+
+/**
+ * Fetches live ambient weather metrics from Open-Meteo for Ghaziabad
+ * and updates the Home dashboard weather widget
+ */
+export async function fetchLiveWeather() {
+  const tempEl = document.getElementById('dashboard-temp');
+  const condEl = document.getElementById('dashboard-condition');
+
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=28.6692&longitude=77.4538&current=temperature_2m,relative_humidity_2m';
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Weather API returned status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const current = data.current || {};
+    const temp = current.temperature_2m;
+    const humidity = current.relative_humidity_2m;
+
+    if (temp != null && tempEl) {
+      tempEl.textContent = `${Math.round(temp)}°`;
+    }
+
+    if (condEl) {
+      if (humidity != null && humidity > 60) {
+        condEl.textContent = 'Warm and humid conditions';
+      } else {
+        condEl.textContent = 'Clear and dry conditions';
+      }
+    }
+
+    return { temp, humidity };
+  } catch (err) {
+    console.warn('[Weather] Could not fetch live weather:', err);
+    return null;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.fetchLiveWeather = fetchLiveWeather;
 }
 
 function bootCareTagApp() {
   if (!window.careTagApp) {
     window.careTagApp = new GarmentScannerApp();
   }
+  fetchLiveWeather();
 }
 
 if (document.readyState === 'loading') {
