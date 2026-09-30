@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import List, Optional
+import urllib.parse
 import cv2
 import numpy as np
 import requests
@@ -238,6 +239,58 @@ def calculate_garment_metrics(detected_symbols: list) -> dict:
         "comfort": comfort
     }
 
+def generate_smart_search_insights(detected_symbols: list) -> dict:
+    """
+    Generate tailored search query, inspection tip, and direct Google Shopping link
+    based on detected care symbols.
+    """
+    has_dry_clean = False
+    has_hand_wash = False
+    has_low_iron = False
+    has_no_tumble = False
+
+    for item in detected_symbols:
+        sym = getattr(item, "symbol", "") if hasattr(item, "symbol") else (item.get("symbol", "") if isinstance(item, dict) else str(item))
+        inst = getattr(item, "instruction", "") if hasattr(item, "instruction") else (item.get("instruction", "") if isinstance(item, dict) else "")
+        sym_lower = sym.lower()
+        inst_lower = inst.lower()
+
+        if "circle_p" in sym_lower or ("dry clean" in inst_lower and "not" not in inst_lower and "crossed" not in sym_lower):
+            has_dry_clean = True
+        elif "washtub_hand" in sym_lower or "hand wash" in inst_lower:
+            has_hand_wash = True
+        elif "iron_1dot" in sym_lower or ("low" in inst_lower and "iron" in inst_lower):
+            has_low_iron = True
+        elif "square_crossed" in sym_lower or ("tumble" in inst_lower and "not" in inst_lower):
+            has_no_tumble = True
+
+    if has_dry_clean:
+        query = "premium wool tailored formal garment price range online"
+        tip = "Ensure professional dry cleaning compliance for this fabric type. Check shoulder padding and structural stitching."
+    elif has_hand_wash:
+        query = "delicate silk linen blend garment price range online"
+        tip = "Inspect fine fiber knit tension and delicate hem integrity. Use mild detergent and dry flat to prevent fiber warping."
+    elif has_no_tumble:
+        query = "air dry delicate garment price range online"
+        tip = "Air-dry flat or drip dry in shade to preserve garment shape and avoid heat shrinkage."
+    elif has_low_iron:
+        query = "wrinkle resistant lightweight travel garment price range online"
+        tip = "Inspect synthetic and elastane thread elasticity. Use a low temperature iron with a press cloth to avoid fabric shine."
+    else:
+        query = "organic cotton breathable garment price range online"
+        tip = "Check for high stitch density and verify fabric breathability against current weather conditions."
+
+    encoded_query = urllib.parse.quote_plus(query)
+    shopping_url = f"https://www.google.com/search?q={encoded_query}&tbm=shop"
+
+    return {
+        "query": query,
+        "inspection_tip": tip,
+        "tip": tip,
+        "shopping_url": shopping_url,
+        "search_url": shopping_url
+    }
+
 @app.post("/api/v1/detect-symbols")
 async def detect_symbols(
     file: UploadFile = File(...),
@@ -298,8 +351,14 @@ async def detect_symbols(
         if d.category not in unique_map and d.symbol not in unique_map:
             unique_map[d.category] = d
 
-    metrics = calculate_garment_metrics(list(unique_map.values()))
-    return {"symbols": list(unique_map.values()), "scores": metrics}
+    unique_symbols = list(unique_map.values())
+    metrics = calculate_garment_metrics(unique_symbols)
+    smart_search = generate_smart_search_insights(unique_symbols)
+    return {
+        "symbols": unique_symbols,
+        "scores": metrics,
+        "smart_search": smart_search
+    }
 
 # Mount static frontend files if served directly through FastAPI
 if (ROOT_DIR / "js").is_dir():

@@ -222,7 +222,12 @@ async function simulateTensorRTInference() {
   const scenario = MOCK_SCENARIOS[activeScenarioKey] || MOCK_SCENARIOS.default;
   return {
     symbols: JSON.parse(JSON.stringify(scenario.data)),
-    scores: scenario.scores || { sustainability: 85, comfort: 90 }
+    scores: scenario.scores || { sustainability: 85, comfort: 90 },
+    smart_search: {
+      query: 'organic cotton breathable garment price range online',
+      inspection_tip: 'Check for high stitch density and verify fabric breathability against current weather conditions.',
+      shopping_url: 'https://www.google.com/search?q=organic+cotton+garment+price+range&tbm=shop'
+    }
   };
 }
 

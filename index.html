@@ -321,9 +321,48 @@
           </div>
         </div>
 
-        <!-- YOLO-Detected ISO Care Symbols Cards List (Clean Vector SVGs instead of text) -->
-        <div id="results-cards-container" class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-2.5">
-          <!-- Populated by app.js with SVG icons -->
+        <!-- YOLO-Detected ISO Care Symbols Cards List & Smart Search Assistant -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-3.5">
+          <div id="results-cards-container" class="space-y-2.5">
+            <!-- Populated by app.js with SVG icons -->
+          </div>
+
+          <!-- SMART SEARCH & INSPECTION ASSISTANT CARD -->
+          <div id="smart-search-card" class="p-4 rounded-2xl surface-card border border-neutral-800 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2 text-neon">
+                <i data-lucide="sparkles" class="w-4 h-4 text-neon"></i>
+                <span class="text-xs font-bold tracking-wider uppercase font-mono">Smart Search & Inspection</span>
+              </div>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded surface-secondary text-neutral-400">AI Assistant</span>
+            </div>
+
+            <!-- Inspection Tip -->
+            <div>
+              <p class="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider mb-1 font-mono">Inspection Tip</p>
+              <p id="smart-inspection-tip" class="text-xs text-white leading-relaxed font-sans">
+                Check for high stitch density and verify fabric breathability against current weather conditions.
+              </p>
+            </div>
+
+            <!-- Search Query Preview -->
+            <div class="p-2.5 rounded-xl surface-secondary flex items-start space-x-2">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-neutral-400 mt-0.5 shrink-0"></i>
+              <span id="smart-search-query" class="text-xs text-neutral-300 font-mono break-words leading-snug">
+                organic cotton breathable garment price range online
+              </span>
+            </div>
+
+            <!-- Direct Google Shopping / Price Link Action Button -->
+            <a id="smart-search-btn"
+              href="https://www.google.com/search?q=organic+cotton+garment+price+range&tbm=shop"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="w-full py-2.5 px-3 rounded-xl bg-neon text-black text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-1.5 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer">
+              <i data-lucide="shopping-bag" class="w-3.5 h-3.5 text-black"></i>
+              <span>Inspect & Compare Prices</span>
+            </a>
+          </div>
         </div>
 
         <!-- Footer Actions -->

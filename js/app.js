@@ -95,6 +95,12 @@ class GarmentScannerApp {
       comfortScorePct: document.getElementById('comfort-score-pct'),
       comfortProgressBar: document.getElementById('comfort-progress-bar'),
 
+      // Smart Search & Inspection Assistant
+      smartSearchCard: document.getElementById('smart-search-card'),
+      smartSearchQuery: document.getElementById('smart-search-query'),
+      smartInspectionTip: document.getElementById('smart-inspection-tip'),
+      smartSearchBtn: document.getElementById('smart-search-btn'),
+
       // Profile View Elements
       profileClosetCount: document.getElementById('profile-closet-count'),
       btnProfileOpenCloset: document.getElementById('btn-profile-open-closet'),
@@ -814,6 +820,8 @@ class GarmentScannerApp {
           <p class="text-xs text-neutral-500 mt-1">Ensure the care tag is clearly lit and flat within the viewfinder.</p>
         </div>`;
       this.dom.resultsSummaryText.textContent = 'No clear symbols detected';
+      const smartSearchCard = this.dom.smartSearchCard || document.getElementById('smart-search-card');
+      if (smartSearchCard) smartSearchCard.style.display = 'none';
       return;
     }
 
@@ -868,6 +876,36 @@ class GarmentScannerApp {
 
       this.dom.resultsCardsContainer.appendChild(card);
     });
+
+    // Update Smart Search & Inspection Assistant Card
+    const smartSearchCard = this.dom.smartSearchCard || document.getElementById('smart-search-card');
+    const queryEl = this.dom.smartSearchQuery || document.getElementById('smart-search-query');
+    const tipEl = this.dom.smartInspectionTip || document.getElementById('smart-inspection-tip');
+    const btnEl = this.dom.smartSearchBtn || document.getElementById('smart-search-btn');
+
+    if (smartSearchCard) {
+      smartSearchCard.style.display = 'block';
+    }
+
+    if (data && data.smart_search) {
+      const searchData = data.smart_search;
+      const queryText = searchData.query || 'organic cotton breathable garment price range online';
+      const tipText = searchData.inspection_tip || searchData.tip || 'Check for high stitch density and verify fabric breathability against current weather conditions.';
+      const shoppingUrl = searchData.shopping_url || searchData.search_url || searchData.url || `https://www.google.com/search?q=${encodeURIComponent(queryText)}&tbm=shop`;
+
+      if (queryEl) queryEl.textContent = queryText;
+      if (tipEl) tipEl.textContent = tipText;
+      if (btnEl) btnEl.href = shoppingUrl;
+    } else {
+      // Graceful fallback if smart_search is missing
+      const defaultQuery = 'organic cotton breathable garment price range online';
+      const defaultTip = 'Check for high stitch density and verify fabric breathability against current weather conditions.';
+      const defaultUrl = 'https://www.google.com/search?q=organic+cotton+garment+price+range&tbm=shop';
+
+      if (queryEl) queryEl.textContent = defaultQuery;
+      if (tipEl) tipEl.textContent = defaultTip;
+      if (btnEl) btnEl.href = defaultUrl;
+    }
 
     this.renderIcons();
   }
