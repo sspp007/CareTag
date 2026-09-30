@@ -44,8 +44,14 @@ export const getBaseUrl = () => {
   return 'https://caretag-1.onrender.com';
 };
 
+
 export const API_BASE_URL = getBaseUrl();
-export const API_ENDPOINT = `${API_BASE_URL}/api/v1/detect-symbols`;
+
+export function getApiEndpoint() {
+  return `${getBaseUrl()}/api/v1/detect-symbols`;
+}
+
+export const API_ENDPOINT = getApiEndpoint();
 
 export function setCustomApiUrl(url) {
   if (!url || !url.trim()) {
@@ -108,29 +114,28 @@ export function getActiveScenario() {
   return activeScenarioKey;
 }
 
-export function getApiEndpoint() {
-  return `${getBaseUrl()}/api/v1/detect-symbols`;
-}
-
-export const API_ENDPOINT = getApiEndpoint();
-
 /**
  * Health check helper to verify connection with the YOLO backend
  */
 export async function checkBackendHealth() {
   const baseUrl = getBaseUrl();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout prevents hanging UI
   try {
     const res = await fetch(`${baseUrl}/api/v1/health`, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'no-store',
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       return { online: true, ...data };
     }
     return { online: false, status: res.status };
   } catch (err) {
+    clearTimeout(timeoutId);
     return { online: false, error: err.message, url: baseUrl };
   }
 }
@@ -270,7 +275,7 @@ async function callFastApiBackend(imagePayload) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error(`Inference request timed out (20s) connecting to ${endpoint}.`);
+      throw new Error(`Inference request timed out (60s) connecting to ${endpoint}.`);
     }
     if (err.message && err.message.includes('Failed to fetch')) {
       throw new Error(`Cannot reach CareTag backend at ${endpoint}. Please verify your backend server is deployed and running.`);
