@@ -146,6 +146,12 @@ class GarmentScannerApp {
   renderIcons() {
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       window.lucide.createIcons();
+    } else {
+      setTimeout(() => {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+      }, 150);
     }
   }
 
@@ -1070,7 +1076,14 @@ class GarmentScannerApp {
   }
 }
 
-// Instantiate when DOM is fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-  window.careTagApp = new GarmentScannerApp();
-});
+function bootCareTagApp() {
+  if (!window.careTagApp) {
+    window.careTagApp = new GarmentScannerApp();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootCareTagApp);
+} else {
+  bootCareTagApp();
+}

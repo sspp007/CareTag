@@ -427,7 +427,7 @@
       <!-- CARD 1: Wash, Dry & Iron Manual -->
       <div class="surface-card p-5 space-y-3.5">
         <div class="w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
-          <img src="assets/guide_wash_manual.jpg" alt="Loose line art sketch of washing machine and iron" class="w-full h-full object-cover">
+          <img src="assets/guide_wash_manual.jpg" alt="Loose line art sketch of washing machine and iron" class="w-full h-full object-cover" loading="lazy" decoding="async">
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -457,7 +457,7 @@
       <!-- CARD 2: Detergent & Money Saving -->
       <div class="surface-card p-5 space-y-3.5">
         <div class="w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
-          <img src="assets/guide_detergent.jpg" alt="Loose line art sketch of detergent bottle and coins" class="w-full h-full object-cover">
+          <img src="assets/guide_detergent.jpg" alt="Loose line art sketch of detergent bottle and coins" class="w-full h-full object-cover" loading="lazy" decoding="async">
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -487,7 +487,7 @@
       <!-- CARD 3: Fabric Purchasing Red Flags -->
       <div class="surface-card p-5 space-y-3.5">
         <div class="w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
-          <img src="assets/guide_fabric_flags.jpg" alt="Loose line art sketch of garment tag" class="w-full h-full object-cover">
+          <img src="assets/guide_fabric_flags.jpg" alt="Loose line art sketch of garment tag" class="w-full h-full object-cover" loading="lazy" decoding="async">
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -517,7 +517,7 @@
       <!-- CARD 4: The Reckless Washing Graveyard -->
       <div class="surface-card p-5 space-y-3.5">
         <div class="w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
-          <img src="assets/guide_graveyard.jpg" alt="Loose line art sketch of shrunken ruined sweater" class="w-full h-full object-cover">
+          <img src="assets/guide_graveyard.jpg" alt="Loose line art sketch of shrunken ruined sweater" class="w-full h-full object-cover" loading="lazy" decoding="async">
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -668,25 +668,21 @@
   </main>
 
   <!-- Application Logic Modules -->
-  <script type="module" src="js/app.js?v=2.2"></script>
+  <script type="module" src="js/app.js?v=2.3"></script>
 
   <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=9')
+        const hadController = Boolean(navigator.serviceWorker.controller);
+        navigator.serviceWorker.register('./sw.js?v=10')
           .then((reg) => {
             console.log('[PWA] Service Worker registered:', reg.scope);
-            reg.update();
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('[PWA] New version ready! Reloading to activate...');
-                    window.location.reload();
-                  }
-                });
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (hadController && !refreshing) {
+                refreshing = true;
+                window.location.reload();
               }
             });
           })

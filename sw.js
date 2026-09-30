@@ -1,9 +1,9 @@
 /**
  * CareTag - Service Worker
- * PWA Cache Controller (v9 - Live YOLOv8 API enabled)
+ * PWA Cache Controller (v10 - High Performance & Live API)
  */
 
-const CACHE_NAME = 'caretag-v9';
+const CACHE_NAME = 'caretag-v10';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,18 +12,14 @@ const ASSETS_TO_CACHE = [
   './js/api.js',
   './js/symbols.js',
   './js/storage.js',
-  './manifest.json',
-  './assets/guide_wash_manual.jpg',
-  './assets/guide_detergent.jpg',
-  './assets/guide_fabric_flags.jpg',
-  './assets/guide_graveyard.jpg'
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker v9] Caching fresh core assets');
+      console.log('[Service Worker v10] Precaching core assets');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -45,9 +41,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Never intercept POST requests or API calls
+  // Only handle same-origin GET requests; bypass external CDNs and backend APIs
   if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('/api/') || event.request.url.includes('onrender.com')) return;
+  if (!event.request.url.startsWith(self.location.origin)) return;
+  if (event.request.url.includes('/api/')) return;
 
   // Network-first strategy for app files: always get fresh code from server
   event.respondWith(
