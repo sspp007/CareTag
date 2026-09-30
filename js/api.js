@@ -7,13 +7,12 @@
 export const USE_MOCK_API = false;
 
 // Production backend URL deployed on Render
-export const PRODUCTION_API_URL = 'https://caretag-1.onrender.com';
-
+export const PRODUCTION_API_URL = 'https://search-pichunter-guns-schedules.trycloudflare.com';
 /**
  * Dynamically resolves the API base URL across Localhost, Vercel, and custom deployments.
  */
 export const getBaseUrl = () => {
-  if (typeof window === 'undefined') return 'https://caretag-1.onrender.com';
+  if (typeof window === 'undefined') return 'https://search-pichunter-guns-schedules.trycloudflare.com';
 
   // 1. User-configured override stored in localStorage
   const customUrl = localStorage.getItem('caretag_api_url');
