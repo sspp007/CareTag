@@ -12,8 +12,7 @@ export const PRODUCTION_API_URL = 'https://search-pichunter-guns-schedules.trycl
  * Dynamically resolves the API base URL across Localhost, Vercel, and custom deployments.
  */
 export const getBaseUrl = () => {
-  if (typeof window === 'undefined') return 'https://search-pichunter-guns-schedules.trycloudflare.com';
-
+  if (typeof window === 'undefined') return 'https://provincial-rules-ethical-reg.trycloudflare.com';
   // 1. User-configured override stored in localStorage
   const customUrl = localStorage.getItem('caretag_api_url');
   if (customUrl && customUrl.trim()) {
