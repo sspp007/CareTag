@@ -7,7 +7,7 @@
 export const USE_MOCK_API = false;
 
 // Production backend URL deployed on Render
-export const PRODUCTION_API_URL = 'https://search-pichunter-guns-schedules.trycloudflare.com';
+export const PRODUCTION_API_URL = 'https://provincial-rules-ethical-reg.trycloudflare.com';
 /**
  * Dynamically resolves the API base URL across Localhost, Vercel, and custom deployments.
  */
