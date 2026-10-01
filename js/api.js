@@ -7,12 +7,12 @@
 export const USE_MOCK_API = false;
 
 // Production backend URL deployed on Render
-export const PRODUCTION_API_URL = 'https://provincial-rules-ethical-reg.trycloudflare.com';
+export const PRODUCTION_API_URL = 'https://independence-awarded-tubes-settle.trycloudflare.com';
 /**
  * Dynamically resolves the API base URL across Localhost, Vercel, and custom deployments.
  */
 export const getBaseUrl = () => {
-  if (typeof window === 'undefined') return 'https://provincial-rules-ethical-reg.trycloudflare.com';
+  if (typeof window === 'undefined') return 'https://independence-awarded-tubes-settle.trycloudflare.com';
   // 1. User-configured override stored in localStorage
   const customUrl = localStorage.getItem('caretag_api_url');
   if (customUrl && customUrl.trim()) {
@@ -39,7 +39,7 @@ export const getBaseUrl = () => {
     return 'http://localhost:8000';
   }
 
-  return 'https://provincial-rules-ethical-reg.trycloudflare.com';
+  return 'https://independence-awarded-tubes-settle.trycloudflare.com';
 };
 
 
