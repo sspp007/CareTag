@@ -39,7 +39,7 @@ export const getBaseUrl = () => {
     return 'http://localhost:8000';
   }
 
-  return 'https://caretag-1.onrender.com';
+  return 'https://provincial-rules-ethical-reg.trycloudflare.com';
 };
 
 
